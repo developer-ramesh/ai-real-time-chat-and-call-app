@@ -15,10 +15,12 @@ function joinRoom() {
         return;
     }
 
-    socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app/ws/${roomId}`);
-    window.socket = socket; // ✅ Make globally accessible
+    socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app/ws/${roomId}`); // Production / live
+    //socket = new WebSocket(`ws://localhost:8000/ws/${roomId}`); // Local development
 
-    socket.onopen = () => console.log("Connected to WebSocket");
+
+    socket.onopen = () => console.log("✅ WebSocket connected successfully!");
+    socket.onerror = error => console.error("❌ WebSocket error:", error);
 
     document.getElementById("startAudioCall").removeAttribute("disabled");
     document.getElementById("startVideoCall").removeAttribute("disabled");
@@ -122,7 +124,7 @@ function toggleSendButton() {
 }
 
 function startVideoCall() {
-    if (!window.socket || window.socket.readyState !== WebSocket.OPEN) {
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
         console.error("Socket not initialized yet. WebRTC signaling will not work until you join a room.");
         alert("Please join a room before starting a video call.");
         return;
@@ -139,7 +141,7 @@ function startVideoCall() {
 
             peerConnection.onicecandidate = event => {
                 if (event.candidate) {
-                    window.socket.send(JSON.stringify({ type: "candidate", candidate: event.candidate }));
+                    socket.send(JSON.stringify({ type: "candidate", candidate: event.candidate }));
                 }
             };
 
@@ -153,7 +155,7 @@ function startVideoCall() {
                     return peerConnection.setLocalDescription(offer);
                 })
                 .then(() => {
-                    window.socket.send(JSON.stringify({ type: "offer", offer: peerConnection.localDescription }));
+                    socket.send(JSON.stringify({ type: "offer", offer: peerConnection.localDescription }));
                 });
 
         })
@@ -194,12 +196,12 @@ function handleOffer(offer) {
             return peerConnection.setLocalDescription(answer);
         })
         .then(() => {
-            window.socket.send(JSON.stringify({ type: "answer", answer: peerConnection.localDescription }));
+            socket.send(JSON.stringify({ type: "answer", answer: peerConnection.localDescription }));
         });
 
     peerConnection.onicecandidate = event => {
         if (event.candidate) {
-            window.socket.send(JSON.stringify({ type: "candidate", candidate: event.candidate }));
+            socket.send(JSON.stringify({ type: "candidate", candidate: event.candidate }));
         }
     };
 
