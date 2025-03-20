@@ -15,7 +15,7 @@ function joinRoom() {
         return;
     }
 
-    socket = new WebSocket(`ws://alert-clare-capsquery-40268174.koyeb.app:8000/ws/${roomId}`);
+    socket = new WebSocket(`wss://alert-clare-capsquery-40268174.koyeb.app:8000/ws/${roomId}`);
     window.socket = socket; // ✅ Make globally accessible
 
     socket.onopen = () => console.log("Connected to WebSocket");
