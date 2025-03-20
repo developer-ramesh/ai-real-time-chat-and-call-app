@@ -95,7 +95,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 async def serve_home():
     return FileResponse("static/index.html")
 
-if __name__ == "__main__":
-    import uvicorn
+
+if __name__ == '__main__':
     logging.info("🚀 Starting WebSocket Server...")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    app.run(host='0.0.0.0', port=8000)
