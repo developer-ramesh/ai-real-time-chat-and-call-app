@@ -8,6 +8,34 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
     <!-- <link rel="stylesheet" href="/static/style.css"> -->
     <script src="/static/chat.js"></script>
+    <style>
+    .chat-box {
+    height: 350px;
+    overflow-y: auto;
+    border-radius: 10px;
+    padding: 10px;
+    background: rgb(98 96 96 / 5%);
+}
+
+.chat-bubble {
+    padding: 10px 15px;
+    border-radius: 20px;
+    margin-bottom: 5px;
+    max-width: 75%;
+    word-wrap: break-word;
+}
+
+.sent {
+    background: #007bff;
+    color: white;
+    align-self: flex-end;
+}
+
+.received {
+    background: #444;
+    align-self: flex-start;
+}
+    </style>
 </head>
 <body>
     <h2 style="text-align: center;margin-top: 30px;">AI enabled real time chat application with Audio/Video call in native language.</h2><br><br>
