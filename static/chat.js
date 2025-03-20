@@ -2,6 +2,20 @@ let socket;
 let username = "";
 let peerConnection;
 
+const socket = new WebSocket("wss://ramesh-cq-chat.koyeb.app/ws/1111111111sssssssss");
+
+socket.onopen = function(event) {
+    console.log("✅ WebSocket connected successfully!");
+};
+
+socket.onerror = function(error) {
+    console.error("❌ WebSocket error:", error);
+};
+
+socket.onclose = function(event) {
+    console.warn("⚠️ WebSocket closed:", event);
+};
+
 const config = {
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }] // STUN server for NAT traversal
 };
