@@ -2,7 +2,7 @@ let socket;
 let username = "";
 let peerConnection;
 
-const socket = new WebSocket("wss://ramesh-cq-chat.koyeb.app/ws/1111111111sssssssss");
+socket = new WebSocket("wss://ramesh-cq-chat.koyeb.app/ws/1111111111sssssssss");
 
 socket.onopen = function(event) {
     console.log("✅ WebSocket connected successfully!");
