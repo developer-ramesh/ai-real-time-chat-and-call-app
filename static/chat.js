@@ -22,6 +22,7 @@ function joinRoom() {
 
     document.getElementById("startAudioCall").removeAttribute("disabled");
     document.getElementById("startVideoCall").removeAttribute("disabled");
+    document.getElementById("chatSection").style.display = "block";
 
     socket.onmessage = event => {
         const data = JSON.parse(event.data);
