@@ -2,20 +2,6 @@ let socket;
 let username = "";
 let peerConnection;
 
-socket = new WebSocket("wss://ramesh-cq-chat.koyeb.app/ws/1111111111sssssssss");
-
-socket.onopen = function(event) {
-    console.log("✅ WebSocket connected successfully!");
-};
-
-socket.onerror = function(error) {
-    console.error("❌ WebSocket error:", error);
-};
-
-socket.onclose = function(event) {
-    console.warn("⚠️ WebSocket closed:", event);
-};
-
 const config = {
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }] // STUN server for NAT traversal
 };
@@ -29,7 +15,7 @@ function joinRoom() {
         return;
     }
 
-    socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app:8000/ws/${roomId}`);
+    socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app/ws/${roomId}`);
     window.socket = socket; // ✅ Make globally accessible
 
     socket.onopen = () => console.log("Connected to WebSocket");
