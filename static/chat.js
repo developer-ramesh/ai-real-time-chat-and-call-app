@@ -157,6 +157,12 @@ function handleOffer(offer) {
     document.getElementById("acceptCallButton").style.display = "block";
     document.getElementById("overlay").style.display = "block";
 
+    // Add the bounce effect
+    let acceptButton = document.getElementById("acceptCallButton");
+    acceptButton.classList.add("bounce");
+    // Remove the bounce class after the animation (to allow it to be re-applied later)
+    setTimeout(() => acceptButton.classList.remove("bounce"), 500);
+
     setupPeerConnection();
 
     peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
@@ -181,4 +187,22 @@ async function acceptCall() {
     const answer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answer);
     socket.send(JSON.stringify({ type: "answer", answer }));
+}
+
+
+function showReceiveCallButton() {
+    let receiveCallBtn = document.getElementById("receiveCall");
+
+    if (!receiveCallBtn) {
+        receiveCallBtn = document.createElement("button");
+        receiveCallBtn.id = "receiveCall";
+        receiveCallBtn.textContent = "Receive Call";
+        receiveCallBtn.classList.add("btn", "btn-success", "mt-2", "bounce"); // Add bounce class
+        //receiveCallBtn.onclick = acceptCall;
+
+        document.getElementById("callControls").appendChild(receiveCallBtn);
+    } else {
+        receiveCallBtn.classList.add("bounce"); // Apply bounce animation
+        setTimeout(() => receiveCallBtn.classList.remove("bounce"), 500); // Remove after animation
+    }
 }
