@@ -212,22 +212,32 @@ function handleOffer(offer) {
     };
 }
 
+// async function acceptCall() {
+//     console.log("Call accepted!");
+
+//     document.querySelector(".video-container").style.display = "flex";
+
+//     document.getElementById("acceptCallButton").style.display = "none"; // Hide button
+
+//     // Set up WebRTC peer connection
+//     await setupPeerConnection();
+
+//     // Set remote offer received from WebSocket
+//     await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingOffer));
+
+//     // Create an answer and send it back to the caller
+//     const answer = await peerConnection.createAnswer();
+//     await peerConnection.setLocalDescription(answer);
+
+//     socket.send(JSON.stringify({ type: "answer", answer }));
+// }
+
 async function acceptCall() {
     console.log("Call accepted!");
 
     document.querySelector(".video-container").style.display = "flex";
-
     document.getElementById("acceptCallButton").style.display = "none"; // Hide button
 
-    // Set up WebRTC peer connection
-    await setupPeerConnection();
-
-    // Set remote offer received from WebSocket
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingOffer));
-
-    // Create an answer and send it back to the caller
-    const answer = await peerConnection.createAnswer();
-    await peerConnection.setLocalDescription(answer);
-
-    socket.send(JSON.stringify({ type: "answer", answer }));
+    // Handle the incoming offer and start the call
+    handleOffer(window.incomingOffer);
 }
