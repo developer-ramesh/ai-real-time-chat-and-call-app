@@ -217,7 +217,7 @@ async function acceptCall() {
     document.getElementById("acceptCallButton").style.display = "none"; // Hide button
 
     // Set up WebRTC peer connection
-    //await setupPeerConnection();
+    await setupPeerConnection();
 
     // Set remote offer received from WebSocket
     await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingOffer));
