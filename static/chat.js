@@ -15,9 +15,8 @@ function joinRoom() {
         return;
     }
 
-    socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app/ws/${roomId}`); // Production / live
-    //socket = new WebSocket(`ws://localhost:8000/ws/${roomId}`); // Local development
-
+    //socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app/ws/${roomId}`); // Production / live
+    socket = new WebSocket(`ws://localhost:8000/ws/${roomId}`); // Local development
 
     socket.onopen = () => console.log("✅ WebSocket connected successfully!");
     socket.onerror = error => console.error("❌ WebSocket error:", error);
@@ -30,39 +29,39 @@ function joinRoom() {
         const data = JSON.parse(event.data);
         console.log("Received WebSocket message:", data);
 
-        // Handle text messages
         if (data.type === "text" && data.username !== username) {
             displayMessage(data.username, data.message);
         }
 
-        // Handle incoming call (Show "Receive Call" button)
         if (data.type === "call") {
             console.log("call...");
             showReceiveCallButton();
         }
 
-        // Handle incoming WebRTC messages
         if (data.type === "offer") {
             console.log("Incoming video call...");
-    
-            // Store offer details for later use
-            window.incomingOffer = data.offer;
-    
-            handleOffer(data.offer);
+            window.incomingOffer = data.offer;  // Store for later use
+            showAcceptCallUI();
         }
+
         if (data.type === "answer") {
-            console.log("answer...");
-            peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+            console.log("Received answer...");
+            if (peerConnection && peerConnection.remoteDescription === null) {
+                peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+            }
         }
+
         if (data.type === "candidate") {
-            console.log("candidate...");
-            peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+            console.log("Received ICE candidate...");
+            if (peerConnection) {
+                peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+            }
         }
     };
 
     socket.onclose = () => {
         console.log("Disconnected from WebSocket, attempting to reconnect...");
-        setTimeout(joinRoom, 3000); // Auto-reconnect after 3 seconds
+        setTimeout(joinRoom, 3000);
     };
 }
 
@@ -122,35 +121,21 @@ function toggleSendButton() {
 
 function startVideoCall() {
     if (!socket || socket.readyState !== WebSocket.OPEN) {
-        console.error("Socket not initialized yet. WebRTC signaling will not work until you join a room.");
+        console.error("Socket not initialized yet.");
         alert("Please join a room before starting a video call.");
         return;
     }
     console.log("Starting video call...");
 
-    // Get user media
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
         .then(stream => {
             document.getElementById("localVideo").srcObject = stream;
 
-            peerConnection = new RTCPeerConnection(config);
+            setupPeerConnection();
             stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
 
-            peerConnection.onicecandidate = event => {
-                if (event.candidate) {
-                    socket.send(JSON.stringify({ type: "candidate", candidate: event.candidate }));
-                }
-            };
-
-            peerConnection.ontrack = event => {
-                console.log("Received remote video stream....");
-                document.getElementById("remoteVideo").srcObject = event.streams[0];
-            };
-
             peerConnection.createOffer()
-                .then(offer => {
-                    return peerConnection.setLocalDescription(offer);
-                })
+                .then(offer => peerConnection.setLocalDescription(offer))
                 .then(() => {
                     socket.send(JSON.stringify({ type: "offer", offer: peerConnection.localDescription }));
                 });
@@ -161,7 +146,6 @@ function startVideoCall() {
         });
 }
 
-// Show "Receive Call" button when a call is incoming
 function showReceiveCallButton() {
     let receiveCallBtn = document.getElementById("receiveCall");
 
@@ -170,47 +154,39 @@ function showReceiveCallButton() {
         receiveCallBtn.id = "receiveCall";
         receiveCallBtn.textContent = "Receive Call";
         receiveCallBtn.classList.add("btn", "btn-success", "mt-2");
-        receiveCallBtn.onclick = receiveCall;
+        receiveCallBtn.onclick = acceptCall;
 
         document.getElementById("callControls").appendChild(receiveCallBtn);
     }
 }
 
-// Function to handle receiving a call
-function handleOffer(offer) {
-    // Show "Accept Call" button
+function showAcceptCallUI() {
     document.getElementById("acceptCallButton").style.display = "block";
-    // Show dimmed background
     document.getElementById("overlay").style.display = "block";
+}
 
-    peerConnection = new RTCPeerConnection(config);
+async function acceptCall() {
+    console.log("Call accepted!");
 
-    peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+    document.getElementById("acceptCallButton").style.display = "none";
+    document.getElementById("overlay").style.display = "none";
 
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-        .then(stream => {
-            document.getElementById("localVideo").srcObject = stream;
-            stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+    if (document.getElementById("dimBackground")) {
+        document.getElementById("dimBackground").remove();
+    }
 
-            return peerConnection.createAnswer();
-        })
-        .then(answer => {
-            return peerConnection.setLocalDescription(answer);
-        })
-        .then(() => {
-            socket.send(JSON.stringify({ type: "answer", answer: peerConnection.localDescription }));
-        });
+    if (!peerConnection) {
+        setupPeerConnection();
+    }
 
-    peerConnection.onicecandidate = event => {
-        if (event.candidate) {
-            socket.send(JSON.stringify({ type: "candidate", candidate: event.candidate }));
-        }
-    };
+    if (!peerConnection.remoteDescription) {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingOffer));
+    }
 
-    peerConnection.ontrack = event => {
-        console.log("Received remote video stream.");
-        document.getElementById("remoteVideo").srcObject = event.streams[0];
-    };
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+
+    socket.send(JSON.stringify({ type: "answer", answer }));
 }
 
 function setupPeerConnection() {
@@ -227,38 +203,3 @@ function setupPeerConnection() {
         document.getElementById("remoteVideo").srcObject = event.streams[0];
     };
 }
-
-
-async function acceptCall() {
-    console.log("Call accepted!");
-    
-    // Hide the accept button & overlay
-    document.getElementById("acceptCallButton").style.display = "none";
-    const dimBackground = document.getElementById("dimBackground");
-    if (dimBackground) {
-        dimBackground.remove();
-    }
-    document.getElementById("overlay").style.display = "none";
-
-    // Set up WebRTC peer connection
-    setupPeerConnection();
-
-    // Set remote offer received from WebSocket
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingOffer));
-
-    // Create an answer and send it back to the caller
-    const answer = await peerConnection.createAnswer();
-    await peerConnection.setLocalDescription(answer);
-
-    socket.send(JSON.stringify({ type: "answer", answer }));
-}
-
-// async function acceptCall() {
-//     console.log("Call accepted!");
-
-//     document.querySelector(".video-container").style.display = "flex";
-//     document.getElementById("acceptCallButton").style.display = "none"; // Hide button
-
-//     // Handle the incoming offer and start the call
-//     handleOffer(window.incomingOffer);
-// }
