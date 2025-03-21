@@ -1,19 +1,18 @@
-// WebSocket Setup (Common for Both)
+/** WebSocket Setup (Common for Both) */
 let socket;         // WebSocket for communication
 let username = "";  // Stores the username
 let peerConnection; // WebRTC Peer Connection for Video Calls
 let remoteStream;   // Stores the remote video/audio stream
-let iceCandidateQueue = []; // Store ICE candidates until the remote description is set
-
 
 // ICE Server configuration for WebRTC
 const config = {
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
 };
 
-// Text Chat Functionality
-// Join a Room (Text & Video Calls)
-function joinRoom() {
+/** Text Chat Functionality
+ Join a Room (Text & Video Calls) */
+
+ function joinRoom() {
     username = document.getElementById("usernameInput").value.trim();
     const roomId = document.getElementById("roomIdInput").value.trim();
 
@@ -23,7 +22,7 @@ function joinRoom() {
     }
 
     // Connect to WebSocket server (Production / Live)
-     socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app/ws/${roomId}`);
+    socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app/ws/${roomId}`);
     
     // Connect to WebSocket server (Development / Local)
     //socket = new WebSocket(`ws://localhost:8000/ws/${roomId}`);
@@ -74,36 +73,15 @@ function joinRoom() {
         if (data.type === "answer") {
             if (peerConnection.signalingState !== "stable") {
                 peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer))
-                    .then(() => {
-                        // Process any queued ICE candidates
-                        iceCandidateQueue.forEach(candidate => peerConnection.addIceCandidate(candidate));
-                        iceCandidateQueue = []; // Clear the queue
-                    })
                     .catch(error => console.error("❌ setRemoteDescription error:", error));
             }
         }
 
         if (data.type === "candidate") {
-            if (peerConnection.remoteDescription) {
-                // Add the candidate immediately if remote description is set
+            if (peerConnection) {
                 peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate))
                     .catch(error => console.error("❌ addIceCandidate error:", error));
-            } else {
-                // Queue the ICE candidate until remote description is set
-                iceCandidateQueue.push(new RTCIceCandidate(data.candidate));
             }
-        }
-
-        if (data.type === "reject") {
-            console.log("📴 The other user rejected the call.");
-            document.getElementById("acceptCallButton").style.display = "none";
-            document.getElementById("rejectCallButton").style.display = "none";
-            document.getElementById("overlay").style.display = "none";
-        }
-    
-        if (data.type === "end") {
-            console.log("📴 The other user ended the call.");
-            endCall();
         }
     };
 
@@ -113,7 +91,7 @@ function joinRoom() {
     };
 }
 
-// Sending & Displaying Messages (Text Chat)
+/** Sending & Displaying Messages (Text Chat) */
 function sendMessage() {
     const messageInput = document.getElementById("messageInput");
     const message = messageInput.value.trim();
@@ -170,9 +148,10 @@ function toggleSendButton() {
     }
 }
 
-// Video Call Functionality
-// Starting a Video Call
-function startVideoCall() {
+/** Video Call Functionality
+ Starting a Video Call */
+
+ function startVideoCall() {
     if (!socket || socket.readyState !== WebSocket.OPEN) {
         alert("Please join a room first!");
         return;
@@ -193,16 +172,11 @@ function startVideoCall() {
         .catch(error => console.error("❌ Media error:", error));
 }
 
-// Setting Up WebRTC Connection
+/** Setting Up WebRTC Connection */
 function setupPeerConnection() {
     peerConnection = new RTCPeerConnection(config);
     remoteStream = new MediaStream();
     document.getElementById("remoteVideo").srcObject = remoteStream;
-
-    peerConnection.ontrack = event => {
-        console.log("🎥 Received remote stream:", event.streams);
-        event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
-    };
 
     peerConnection.onicecandidate = event => {
         if (event.candidate) {
@@ -210,33 +184,24 @@ function setupPeerConnection() {
         }
     };
 
-    peerConnection.oniceconnectionstatechange = () => {
-        console.log("ICE connection state:", peerConnection.iceConnectionState);
+    peerConnection.ontrack = event => {
+        console.log("🎥 Received remote stream");
+        event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
     };
 }
 
-
-// Handling Incoming Call Offers
+/**  Handling Incoming Call Offers */
 function handleOffer(offer) {
     document.getElementById("acceptCallButton").style.display = "block";
-    document.getElementById("rejectCallButton").style.display = "block";
     document.getElementById("overlay").style.display = "block";
 
     setupPeerConnection();
 
-    // Store the offer until the user accepts
-    window.incomingOffer = offer;
-
-    // DO NOT set remote description yet (wait for user to accept)
-
-
     peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
         .then(() => navigator.mediaDevices.getUserMedia({ video: true, audio: true }))
         .then(stream => {
-            console.log("🎥 Local stream started:", stream);
             document.getElementById("localVideo").srcObject = stream;
-            stream.getTracks().forEach(track => peerConnection.addTrack(track, stream)); // Add local tracks
-
+            stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
             return peerConnection.createAnswer();
         })
         .then(answer => peerConnection.setLocalDescription(answer))
@@ -244,71 +209,15 @@ function handleOffer(offer) {
         .catch(error => console.error("❌ handleOffer error:", error));
 }
 
-// Accepting a Call
+/** Accepting a Call */
 async function acceptCall() {
     console.log("✅ Call accepted!");
 
     document.getElementById("acceptCallButton").style.display = "none";
-    document.getElementById("rejectCallButton").style.display = "none";
     document.getElementById("overlay").style.display = "none";
-    document.getElementById("endCallButton").style.display = "block"; // Show End Call button
-
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    document.getElementById("localVideo").srcObject = stream;
-    stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
-
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingOffer));
-    const answer = await peerConnection.createAnswer();
-    await peerConnection.setLocalDescription(answer);
-    socket.send(JSON.stringify({ type: "answer", answer }));
-
-    // Show remote video only after accepting
-    document.getElementById("remoteVideo").style.display = "block";
-}
-
-// Reject the Call
-function rejectCall() {
-    console.log("🚫 Call rejected!");
-    document.getElementById("acceptCallButton").style.display = "none";
-    document.getElementById("rejectCallButton").style.display = "none";
-    document.getElementById("overlay").style.display = "none";
-
-    // Send a rejection message
-    socket.send(JSON.stringify({ type: "call-rejected" }));
-}
-
-async function acceptCall() {
-    console.log("✅ Call accepted!");
-
-    document.getElementById("acceptCallButton").style.display = "none";
-    document.getElementById("rejectCallButton").style.display = "none";
-    document.getElementById("endCallButton").style.display = "block"; // Show end call button
-    document.getElementById("overlay").style.display = "none";
-
-    setupPeerConnection();
 
     await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingOffer));
     const answer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answer);
     socket.send(JSON.stringify({ type: "answer", answer }));
 }
-
-function endCall() {
-    console.log("📴 Ending call...");
-    
-    if (peerConnection) {
-        peerConnection.close();
-        peerConnection = null;
-    }
-
-    document.getElementById("localVideo").srcObject = null;
-    document.getElementById("remoteVideo").srcObject = null;
-    document.getElementById("endCallButton").style.display = "none";
-    document.getElementById("acceptCallButton").style.display = "none";
-    document.getElementById("rejectCallButton").style.display = "none";
-    document.getElementById("overlay").style.display = "none";
-
-    socket.send(JSON.stringify({ type: "call-ended" }));
-}
-
-
