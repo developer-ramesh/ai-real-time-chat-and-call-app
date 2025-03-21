@@ -47,12 +47,13 @@
 
                 <!-- Call Buttons -->
                 <div class="d-flex justify-content-between mt-3">
-                    <button onclick="startAudioCall()" class="btn btn-warning w-50 me-2" id="startAudioCall" disabled>
-                        <i class="bi bi-telephone"></i> Audio
+                    <button onclick="startAudioCall()" class="btn btn-warning w-30 me-2" id="startAudioCall" disabled>
+                        <i class="bi bi-telephone"></i> Audio Call
                     </button>
-                    <button onclick="startVideoCall()" class="btn btn-danger w-50" id="startVideoCall" disabled>
-                        <i class="bi bi-camera-video"></i> Video
+                    <button onclick="startVideoCall()" class="btn btn-primary w-30" id="startVideoCall" disabled>
+                        <i class="bi bi-camera-video"></i> Video Call
                     </button>
+                    <button id="endCallButton" onclick="endCall()" class="btn btn-danger w-30" style="display: none;">End Call</button>
                 </div>
 
                 <div class="video-container mt-3">
@@ -64,6 +65,7 @@
         
         <div id="overlay"></div> <!-- Background Dim Effect -->
         <button id="acceptCallButton" onclick="acceptCall()">Accept Call</button>
+        <button id="rejectCallButton" onclick="rejectCall()">Reject Call</button>
     </div>
 </body>
 </html>
