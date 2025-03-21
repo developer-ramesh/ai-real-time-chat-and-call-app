@@ -130,6 +130,7 @@ function startVideoCall() {
         return;
     }
     console.log("Starting video call...");
+    document.querySelector(".video-container").style.display = "flex";
 
     // Get user media
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
