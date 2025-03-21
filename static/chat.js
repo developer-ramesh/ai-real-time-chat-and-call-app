@@ -45,9 +45,6 @@ function joinRoom() {
         if (data.type === "offer") {
             console.log("Incoming video call...");
     
-            // Show "Accept Call" button
-            document.getElementById("acceptCallButton").style.display = "block";
-    
             // Store offer details for later use
             window.incomingOffer = data.offer;
     
@@ -130,7 +127,6 @@ function startVideoCall() {
         return;
     }
     console.log("Starting video call...");
-    document.querySelector(".video-container").style.display = "flex";
 
     // Get user media
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
@@ -182,6 +178,11 @@ function showReceiveCallButton() {
 
 // Function to handle receiving a call
 function handleOffer(offer) {
+    // Show "Accept Call" button
+    document.getElementById("acceptCallButton").style.display = "block";
+    // Show dimmed background
+    document.getElementById("overlay").style.display = "block";
+
     peerConnection = new RTCPeerConnection(config);
 
     peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
@@ -230,10 +231,14 @@ function setupPeerConnection() {
 
 async function acceptCall() {
     console.log("Call accepted!");
-
-    document.querySelector(".video-container").style.display = "flex";
-
-    document.getElementById("acceptCallButton").style.display = "none"; // Hide button
+    
+    // Hide the accept button & overlay
+    document.getElementById("acceptCallButton").style.display = "none";
+    const dimBackground = document.getElementById("dimBackground");
+    if (dimBackground) {
+        dimBackground.remove();
+    }
+    document.getElementById("overlay").style.display = "none";
 
     // Set up WebRTC peer connection
     setupPeerConnection();
