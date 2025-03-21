@@ -15,8 +15,8 @@ function joinRoom() {
         return;
     }
 
-    socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app/ws/${roomId}`); // Production / live
-    //socket = new WebSocket(`ws://localhost:8000/ws/${roomId}`); // Local development
+    //socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app/ws/${roomId}`); // Production / live
+    socket = new WebSocket(`ws://localhost:8000/ws/${roomId}`); // Local development
 
 
     socket.onopen = () => console.log("✅ WebSocket connected successfully!");
@@ -212,32 +212,48 @@ function handleOffer(offer) {
     };
 }
 
-// async function acceptCall() {
-//     console.log("Call accepted!");
+function setupPeerConnection() {
+    peerConnection = new RTCPeerConnection(config);
 
-//     document.querySelector(".video-container").style.display = "flex";
+    peerConnection.onicecandidate = event => {
+        if (event.candidate) {
+            socket.send(JSON.stringify({ type: "candidate", candidate: event.candidate }));
+        }
+    };
 
-//     document.getElementById("acceptCallButton").style.display = "none"; // Hide button
+    peerConnection.ontrack = event => {
+        console.log("Received remote video stream.");
+        document.getElementById("remoteVideo").srcObject = event.streams[0];
+    };
+}
 
-//     // Set up WebRTC peer connection
-//     await setupPeerConnection();
-
-//     // Set remote offer received from WebSocket
-//     await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingOffer));
-
-//     // Create an answer and send it back to the caller
-//     const answer = await peerConnection.createAnswer();
-//     await peerConnection.setLocalDescription(answer);
-
-//     socket.send(JSON.stringify({ type: "answer", answer }));
-// }
 
 async function acceptCall() {
     console.log("Call accepted!");
 
     document.querySelector(".video-container").style.display = "flex";
+
     document.getElementById("acceptCallButton").style.display = "none"; // Hide button
 
-    // Handle the incoming offer and start the call
-    handleOffer(window.incomingOffer);
+    // Set up WebRTC peer connection
+    setupPeerConnection();
+
+    // Set remote offer received from WebSocket
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingOffer));
+
+    // Create an answer and send it back to the caller
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+
+    socket.send(JSON.stringify({ type: "answer", answer }));
 }
+
+// async function acceptCall() {
+//     console.log("Call accepted!");
+
+//     document.querySelector(".video-container").style.display = "flex";
+//     document.getElementById("acceptCallButton").style.display = "none"; // Hide button
+
+//     // Handle the incoming offer and start the call
+//     handleOffer(window.incomingOffer);
+// }
