@@ -127,12 +127,32 @@ video {
 .indian-flag-text {
     font-size: 18px;
     font-weight: bold;
-    background: linear-gradient(90deg, #FF9933, #a8a6a6, #138808, #000080); /* Saffron, White, Green, Blue */
+    background: linear-gradient(90deg, #FF9933, #ffffff, #138808, #000080); /* Saffron, White, Green, Blue */
     background-size: 300% 300%;
+    animation: indianFlagGradient 8s infinite linear;
+
+    /* Ensure text gradient effect works */
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    animation: indianFlagGradient 8s infinite linear;
+    
+    /* Add black background with padding */
+    position: relative;
+    display: inline-block;
+    padding: 5px 10px;
 }
+
+.indian-flag-text::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: black;
+    z-index: -1;
+    border-radius: 5px;
+}
+
 
 @media (max-width: 768px) {
     .chat-container {
