@@ -17,12 +17,27 @@ function joinRoom() {
     
     socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app/ws/${roomId}`); // Production / live
     //socket = new WebSocket(`ws://localhost:8000/ws/${roomId}`); // Local WebSocket
-    socket.onopen = () => console.log("✅ WebSocket connected!");
-    socket.onerror = error => console.error("❌ WebSocket error:", error);
 
-    document.getElementById("startAudioCall").removeAttribute("disabled");
-    document.getElementById("startVideoCall").removeAttribute("disabled");
-    document.getElementById("chatSection").style.display = "block";
+    let joinButton = document.getElementById("joinButton");
+    let joinIcon = document.getElementById("joinIcon");
+    // Change the icon to a spinner
+    joinIcon.classList.remove("bi-box-arrow-in-right");
+    joinIcon.classList.add("spinner-border", "spinner-border-sm");
+    joinButton.disabled = true; // Disable button to prevent multiple clicks
+
+    socket.onopen = () => {
+        console.log("✅ WebSocket connected!");
+        document.getElementById("startAudioCall").removeAttribute("disabled");
+        document.getElementById("startVideoCall").removeAttribute("disabled");
+        document.getElementById("chatSection").style.display = "block";
+
+        joinIcon.classList.remove("spinner-border", "spinner-border-sm");
+        joinIcon.classList.add("bi-box-arrow-in-right");
+        joinButton.textContent = "Joined!";
+    }
+
+
+    socket.onerror = error => console.error("❌ WebSocket error:", error);
 
     socket.onmessage = event => {
         const data = JSON.parse(event.data);
