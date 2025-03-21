@@ -15,8 +15,8 @@ function joinRoom() {
         return;
     }
 
-    //socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app/ws/${roomId}`); // Production / live
-    socket = new WebSocket(`ws://localhost:8000/ws/${roomId}`); // Local development
+    socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app/ws/${roomId}`); // Production / live
+    //socket = new WebSocket(`ws://localhost:8000/ws/${roomId}`); // Local development
 
     socket.onopen = () => console.log("✅ WebSocket connected successfully!");
     socket.onerror = error => console.error("❌ WebSocket error:", error);
