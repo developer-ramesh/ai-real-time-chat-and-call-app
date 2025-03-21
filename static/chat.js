@@ -170,6 +170,7 @@ function setupPeerConnection() {
 
 function handleOffer(offer) {
     document.getElementById("acceptCallButton").style.display = "block";
+    document.getElementById("rejectCallButton").style.display = "block";
     document.getElementById("overlay").style.display = "block";
 
     setupPeerConnection();
@@ -190,6 +191,7 @@ async function acceptCall() {
     console.log("✅ Call accepted!");
 
     document.getElementById("acceptCallButton").style.display = "none";
+    document.getElementById("rejectCallButton").style.display = "none";
     document.getElementById("overlay").style.display = "none";
 
     await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingOffer));
