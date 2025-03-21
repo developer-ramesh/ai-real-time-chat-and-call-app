@@ -26,7 +26,7 @@ function joinRoom() {
      socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app/ws/${roomId}`);
     
     // Connect to WebSocket server (Development / Local)
-    // socket = new WebSocket(`ws://localhost:8000/ws/${roomId}`);
+    //socket = new WebSocket(`ws://localhost:8000/ws/${roomId}`);
 
     let joinButton = document.getElementById("joinButton");
     let joinIcon = document.getElementById("joinIcon");
@@ -199,17 +199,22 @@ function setupPeerConnection() {
     remoteStream = new MediaStream();
     document.getElementById("remoteVideo").srcObject = remoteStream;
 
+    peerConnection.ontrack = event => {
+        console.log("🎥 Received remote stream:", event.streams);
+        event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
+    };
+
     peerConnection.onicecandidate = event => {
         if (event.candidate) {
             socket.send(JSON.stringify({ type: "candidate", candidate: event.candidate }));
         }
     };
 
-    peerConnection.ontrack = event => {
-        console.log("🎥 Received remote stream");
-        event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
+    peerConnection.oniceconnectionstatechange = () => {
+        console.log("ICE connection state:", peerConnection.iceConnectionState);
     };
 }
+
 
 // Handling Incoming Call Offers
 function handleOffer(offer) {
@@ -225,16 +230,18 @@ function handleOffer(offer) {
     // DO NOT set remote description yet (wait for user to accept)
 
 
-    // peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
-    //     .then(() => navigator.mediaDevices.getUserMedia({ video: true, audio: true }))
-    //     .then(stream => {
-    //         document.getElementById("localVideo").srcObject = stream;
-    //         stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
-    //         return peerConnection.createAnswer();
-    //     })
-    //     .then(answer => peerConnection.setLocalDescription(answer))
-    //     .then(() => socket.send(JSON.stringify({ type: "answer", answer: peerConnection.localDescription })))
-    //     .catch(error => console.error("❌ handleOffer error:", error));
+    peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
+        .then(() => navigator.mediaDevices.getUserMedia({ video: true, audio: true }))
+        .then(stream => {
+            console.log("🎥 Local stream started:", stream);
+            document.getElementById("localVideo").srcObject = stream;
+            stream.getTracks().forEach(track => peerConnection.addTrack(track, stream)); // Add local tracks
+
+            return peerConnection.createAnswer();
+        })
+        .then(answer => peerConnection.setLocalDescription(answer))
+        .then(() => socket.send(JSON.stringify({ type: "answer", answer: peerConnection.localDescription })))
+        .catch(error => console.error("❌ handleOffer error:", error));
 }
 
 // Accepting a Call
@@ -261,47 +268,47 @@ async function acceptCall() {
 
 // Reject the Call
 function rejectCall() {
-    console.log("❌ Call rejected!");
-
-    // Hide buttons and overlay
+    console.log("🚫 Call rejected!");
     document.getElementById("acceptCallButton").style.display = "none";
     document.getElementById("rejectCallButton").style.display = "none";
     document.getElementById("overlay").style.display = "none";
 
-    // Notify the caller that the call was rejected
-    socket.send(JSON.stringify({ type: "reject" }));
+    // Send a rejection message
+    socket.send(JSON.stringify({ type: "call-rejected" }));
+}
 
-    // Optionally, reset peer connection
+async function acceptCall() {
+    console.log("✅ Call accepted!");
+
+    document.getElementById("acceptCallButton").style.display = "none";
+    document.getElementById("rejectCallButton").style.display = "none";
+    document.getElementById("endCallButton").style.display = "block"; // Show end call button
+    document.getElementById("overlay").style.display = "none";
+
+    setupPeerConnection();
+
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingOffer));
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+    socket.send(JSON.stringify({ type: "answer", answer }));
+}
+
+function endCall() {
+    console.log("📴 Ending call...");
+    
     if (peerConnection) {
         peerConnection.close();
         peerConnection = null;
     }
-}
-
-// End the Call
-function endCall() {
-    console.log("📴 Call ended!");
-
-    // Hide End Call button
-    document.getElementById("endCallButton").style.display = "none";
-
-    // Stop local and remote video streams
-    let localStream = document.getElementById("localVideo").srcObject;
-    let remoteStream = document.getElementById("remoteVideo").srcObject;
-
-    if (localStream) localStream.getTracks().forEach(track => track.stop());
-    if (remoteStream) remoteStream.getTracks().forEach(track => track.stop());
 
     document.getElementById("localVideo").srcObject = null;
     document.getElementById("remoteVideo").srcObject = null;
+    document.getElementById("endCallButton").style.display = "none";
+    document.getElementById("acceptCallButton").style.display = "none";
+    document.getElementById("rejectCallButton").style.display = "none";
+    document.getElementById("overlay").style.display = "none";
 
-    // Notify peer
-    socket.send(JSON.stringify({ type: "end" }));
-
-    // Close peer connection
-    if (peerConnection) {
-        peerConnection.close();
-        peerConnection = null;
-    }
+    socket.send(JSON.stringify({ type: "call-ended" }));
 }
+
 
