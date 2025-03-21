@@ -10,6 +10,9 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 
 app = FastAPI()
 
+# Mount the static directory to serve files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
