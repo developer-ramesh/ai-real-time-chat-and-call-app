@@ -1,1 +1,113 @@
+body {
+    background: #f8f9fa;
+}
 
+.chat-container {
+    max-width: 600px;
+    width: 100%;
+    padding: 20px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.chat-box {
+    height: 350px;
+    overflow-y: auto;
+    border-radius: 10px;
+    padding: 10px;
+    background: rgb(98 96 96 / 5%);
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-bubble {
+    padding: 10px 15px;
+    border-radius: 20px;
+    margin-bottom: 5px;
+    max-width: 75%;
+    word-wrap: break-word;
+}
+
+.sent {
+    background: #007bff;
+    color: white;
+    align-self: flex-end;
+}
+
+.received {
+    background: #444;
+    color: white;
+    align-self: flex-start;
+}
+
+.video-container {
+    display: flex;
+    margin-top: 20px;
+}
+
+video {
+    width: 100%;
+    max-width: 300px;
+    border-radius: 10px;
+}
+
+/* Background overlay */
+#overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5); /* Dim effect */
+    z-index: 999; /* Just below the button */
+    display: none;
+}
+
+/* Accept Call button */
+#acceptCallButton {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-size: 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    z-index: 9999;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+    animation: bounceIn 0.5s ease-out forwards;
+}
+
+@keyframes bounceIn {
+    0% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0;
+    }
+    50% {
+        transform: translate(-50%, -52%) scale(1.1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+#acceptCallButton:hover {
+    background-color: #218838;
+}
+
+
+@media (max-width: 768px) {
+    .chat-container {
+        width: 95%;
+    }
+
+    video {
+        max-width: 100%;
+    }
+}
