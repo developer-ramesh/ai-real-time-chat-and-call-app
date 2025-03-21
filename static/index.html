@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <favicon href="/static/favicon.ico">
+    <meta name="description" content="AI-Enabled Real-Time P2P Chat with Audio/Video Calls">
+    <meta name="keywords" content="AI, Real-Time, P2P, Chat, Audio, Video, Calls">
+    <meta name="author" content="Ramesh">
+    <meta name="robots" content="index, follow">
     <title>Ramesh-CQ:AI-Enabled Real-Time P2P Chat with Audio/Video Calls</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
@@ -63,33 +68,33 @@
         }
 
         #acceptCallButton {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background-color: #28a745; /* Green color */
-            color: white;
-            font-size: 18px;
-            padding: 15px 25px;
-            border: none;
-            border-radius: 50px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-            z-index: 9999; /* High z-index to stay on top */
-            cursor: pointer;
-            transition: all 0.3s ease-in-out;
-        }
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    background-color: #28a745;
+    color: white;
+    font-size: 1.5rem;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    display: none;
+    animation: pulse 1.5s infinite;
+}
 
-        /* Hover Effect */
-        #acceptCallButton:hover {
-            background-color: #218838; /* Darker Green */
-            transform: scale(1.1); /* Slightly enlarge */
-        }
+#acceptCallButton:hover {
+    background-color: #218838;
+}
 
-        /* Pulse Animation */
-        @keyframes pulse {
-            0% { box-shadow: 0 0 10px rgba(40, 167, 69, 0.6); }
-            50% { box-shadow: 0 0 20px rgba(40, 167, 69, 0.9); }
-            100% { box-shadow: 0 0 10px rgba(40, 167, 69, 0.6); }
-        }
+@keyframes pulse {
+    0% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.1); }
+    100% { transform: translate(-50%, -50%) scale(1); }
+}
+
 
         #acceptCallButton.pulse {
             animation: pulse 1.5s infinite;
@@ -109,7 +114,8 @@
 </head>
 <body>
     <div class="container d-flex flex-column align-items-center vh-100">
-        <h2 class="text-center mb-4" style="padding: 15px;">AI-Enabled Real-Time P2P Chat with Audio/Video Calls In Native Language.</h2>
+        <h2 class="text-center mb-4">AI-Enabled Real-Time P2P Chat with Audio/Video Calls.</h2>
+        <p>(Do call in your native language)</p>
 
         <div class="chat-container">
             <!-- Room Join Section -->
@@ -152,9 +158,7 @@
             </div>
         </div>
 
-        <button id="acceptCallButton" onclick="acceptCall()" class="btn btn-success mt-3" style="display: none;">
-            Accept Call
-        </button>
+        <button id="acceptCallButton" onclick="acceptCall()">Accept Call</button>
     </div>
 </body>
 </html>
