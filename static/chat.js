@@ -170,7 +170,8 @@ function setupPeerConnection() {
     peerConnection = new RTCPeerConnection(config);
     remoteStream = new MediaStream();
     document.getElementById("remoteVideo").srcObject = remoteStream;
-
+    document.getElementById("remoteVideo").style.display = "block";
+    
     peerConnection.onicecandidate = event => {
         if (event.candidate) {
             socket.send(JSON.stringify({ type: "candidate", candidate: event.candidate }));
@@ -210,6 +211,7 @@ async function acceptCall() {
     document.getElementById("acceptCallButton").style.display = "none";
     document.getElementById("rejectCallButton").style.display = "none";
     document.getElementById("overlay").style.display = "none";
+    document.getElementById("endCallButton").style.display = "block";
 
     await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingOffer));
     const answer = await peerConnection.createAnswer();
