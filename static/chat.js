@@ -3,6 +3,8 @@ let socket;         // WebSocket for communication
 let username = "";  // Stores the username
 let peerConnection; // WebRTC Peer Connection for Video Calls
 let remoteStream;   // Stores the remote video/audio stream
+let iceCandidateQueue = []; // Store ICE candidates until the remote description is set
+
 
 // ICE Server configuration for WebRTC
 const config = {
@@ -21,10 +23,10 @@ function joinRoom() {
     }
 
     // Connect to WebSocket server (Production / Live)
-    socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app/ws/${roomId}`);
+     socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app/ws/${roomId}`);
     
     // Connect to WebSocket server (Development / Local)
-    //socket = new WebSocket(`ws://localhost:8000/ws/${roomId}`);
+    // socket = new WebSocket(`ws://localhost:8000/ws/${roomId}`);
 
     let joinButton = document.getElementById("joinButton");
     let joinIcon = document.getElementById("joinIcon");
@@ -72,14 +74,23 @@ function joinRoom() {
         if (data.type === "answer") {
             if (peerConnection.signalingState !== "stable") {
                 peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer))
+                    .then(() => {
+                        // Process any queued ICE candidates
+                        iceCandidateQueue.forEach(candidate => peerConnection.addIceCandidate(candidate));
+                        iceCandidateQueue = []; // Clear the queue
+                    })
                     .catch(error => console.error("❌ setRemoteDescription error:", error));
             }
         }
 
         if (data.type === "candidate") {
-            if (peerConnection) {
+            if (peerConnection.remoteDescription) {
+                // Add the candidate immediately if remote description is set
                 peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate))
                     .catch(error => console.error("❌ addIceCandidate error:", error));
+            } else {
+                // Queue the ICE candidate until remote description is set
+                iceCandidateQueue.push(new RTCIceCandidate(data.candidate));
             }
         }
 
