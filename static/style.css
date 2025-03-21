@@ -64,17 +64,35 @@ video {
     display: none;
 }
 
+#rejectCallButton {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 60%;
+    transform: translate(-50%, -50%) scale(0.8);
+    background-color: #b41e4b;
+    color: white;
+    border: none;
+    padding: 7px 15px;
+    font-size: 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    z-index: 9999;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+    animation: bounce 1s infinite;
+}
+
 /* Accept Call button */
 #acceptCallButton {
     display: none;
     position: fixed;
     top: 50%;
-    left: 50%;
+    left: 40%;
     transform: translate(-50%, -50%) scale(0.8);
     background-color: #28a745;
     color: white;
     border: none;
-    padding: 15px 30px;
+    padding: 7px 15px;
     font-size: 20px;
     border-radius: 10px;
     cursor: pointer;
@@ -95,6 +113,9 @@ video {
 
 #acceptCallButton:hover {
     background-color: #218838;
+}
+#rejectCallButton:hover {
+    background-color: #0c0e0c;
 }
 
 @keyframes indianFlagGradient {
