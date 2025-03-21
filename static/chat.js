@@ -215,6 +215,8 @@ function handleOffer(offer) {
 async function acceptCall() {
     console.log("Call accepted!");
 
+    document.querySelector(".video-container").style.display = "flex";
+
     document.getElementById("acceptCallButton").style.display = "none"; // Hide button
 
     // Set up WebRTC peer connection
@@ -229,6 +231,3 @@ async function acceptCall() {
 
     socket.send(JSON.stringify({ type: "answer", answer }));
 }
-
-
-
