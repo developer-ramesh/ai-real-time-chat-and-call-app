@@ -1,9 +1,9 @@
 let socket;
 let username = "";
 let peerConnection;
-let remoteStream;
+
 const config = {
-    iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+    iceServers: [{ urls: "stun:stun.l.google.com:19302" }] // STUN server for NAT traversal
 };
 
 function joinRoom() {
@@ -15,9 +15,11 @@ function joinRoom() {
         return;
     }
 
-    socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app/ws/${roomId}`); // Production / live
-    //socket = new WebSocket(`ws://localhost:8000/ws/${roomId}`); // Local WebSocket
-    socket.onopen = () => console.log("✅ WebSocket connected!");
+    //socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app/ws/${roomId}`); // Production / live
+    socket = new WebSocket(`ws://localhost:8000/ws/${roomId}`); // Local development
+
+
+    socket.onopen = () => console.log("✅ WebSocket connected successfully!");
     socket.onerror = error => console.error("❌ WebSocket error:", error);
 
     document.getElementById("startAudioCall").removeAttribute("disabled");
@@ -26,39 +28,44 @@ function joinRoom() {
 
     socket.onmessage = event => {
         const data = JSON.parse(event.data);
-        console.log("📩 Received message:", data);
+        console.log("Received WebSocket message:", data);
 
+        // Handle text messages
         if (data.type === "text" && data.username !== username) {
             displayMessage(data.username, data.message);
         }
 
+        // Handle incoming call (Show "Receive Call" button)
         if (data.type === "call") {
+            console.log("call...");
             showReceiveCallButton();
         }
 
+        // Handle incoming WebRTC messages
         if (data.type === "offer") {
+            console.log("Incoming video call...");
+    
+            // Show "Accept Call" button
+            document.getElementById("acceptCallButton").style.display = "block";
+    
+            // Store offer details for later use
             window.incomingOffer = data.offer;
+    
             handleOffer(data.offer);
         }
-
         if (data.type === "answer") {
-            if (peerConnection.signalingState !== "stable") {
-                peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer))
-                    .catch(error => console.error("❌ setRemoteDescription error:", error));
-            }
+            console.log("answer...");
+            peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
         }
-
         if (data.type === "candidate") {
-            if (peerConnection) {
-                peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate))
-                    .catch(error => console.error("❌ addIceCandidate error:", error));
-            }
+            console.log("candidate...");
+            peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
         }
     };
 
     socket.onclose = () => {
-        console.log("🔄 Disconnected, reconnecting...");
-        setTimeout(joinRoom, 3000);
+        console.log("Disconnected from WebSocket, attempting to reconnect...");
+        setTimeout(joinRoom, 3000); // Auto-reconnect after 3 seconds
     };
 }
 
@@ -118,28 +125,79 @@ function toggleSendButton() {
 
 function startVideoCall() {
     if (!socket || socket.readyState !== WebSocket.OPEN) {
-        alert("Please join a room first!");
+        console.error("Socket not initialized yet. WebRTC signaling will not work until you join a room.");
+        alert("Please join a room before starting a video call.");
         return;
     }
-    console.log("📹 Starting video call...");
+    console.log("Starting video call...");
+
+    // Get user media
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        .then(stream => {
+            document.getElementById("localVideo").srcObject = stream;
+
+            peerConnection = new RTCPeerConnection(config);
+            stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+
+            peerConnection.onicecandidate = event => {
+                if (event.candidate) {
+                    socket.send(JSON.stringify({ type: "candidate", candidate: event.candidate }));
+                }
+            };
+
+            peerConnection.ontrack = event => {
+                console.log("Received remote video stream....");
+                document.getElementById("remoteVideo").srcObject = event.streams[0];
+            };
+
+            peerConnection.createOffer()
+                .then(offer => {
+                    return peerConnection.setLocalDescription(offer);
+                })
+                .then(() => {
+                    socket.send(JSON.stringify({ type: "offer", offer: peerConnection.localDescription }));
+                });
+
+        })
+        .catch(error => {
+            console.error("Error accessing camera/microphone:", error);
+        });
+}
+
+// Show "Receive Call" button when a call is incoming
+function showReceiveCallButton() {
+    let receiveCallBtn = document.getElementById("receiveCall");
+
+    if (!receiveCallBtn) {
+        receiveCallBtn = document.createElement("button");
+        receiveCallBtn.id = "receiveCall";
+        receiveCallBtn.textContent = "Receive Call";
+        receiveCallBtn.classList.add("btn", "btn-success", "mt-2");
+        receiveCallBtn.onclick = receiveCall;
+
+        document.getElementById("callControls").appendChild(receiveCallBtn);
+    }
+}
+
+// Function to handle receiving a call
+function handleOffer(offer) {
+    peerConnection = new RTCPeerConnection(config);
+
+    peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
 
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
         .then(stream => {
             document.getElementById("localVideo").srcObject = stream;
-            setupPeerConnection();
             stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
 
-            peerConnection.createOffer()
-                .then(offer => peerConnection.setLocalDescription(offer))
-                .then(() => socket.send(JSON.stringify({ type: "offer", offer: peerConnection.localDescription })));
+            return peerConnection.createAnswer();
         })
-        .catch(error => console.error("❌ Media error:", error));
-}
-
-function setupPeerConnection() {
-    peerConnection = new RTCPeerConnection(config);
-    remoteStream = new MediaStream();
-    document.getElementById("remoteVideo").srcObject = remoteStream;
+        .then(answer => {
+            return peerConnection.setLocalDescription(answer);
+        })
+        .then(() => {
+            socket.send(JSON.stringify({ type: "answer", answer: peerConnection.localDescription }));
+        });
 
     peerConnection.onicecandidate = event => {
         if (event.candidate) {
@@ -148,61 +206,28 @@ function setupPeerConnection() {
     };
 
     peerConnection.ontrack = event => {
-        console.log("🎥 Received remote stream");
-        event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
+        console.log("Received remote video stream.");
+        document.getElementById("remoteVideo").srcObject = event.streams[0];
     };
 }
 
-function handleOffer(offer) {
-    document.getElementById("acceptCallButton").style.display = "block";
-    document.getElementById("overlay").style.display = "block";
-
-    // Add the bounce effect
-    let acceptButton = document.getElementById("acceptCallButton");
-    acceptButton.classList.add("bounce");
-    // Remove the bounce class after the animation (to allow it to be re-applied later)
-    setTimeout(() => acceptButton.classList.remove("bounce"), 500);
-
-    setupPeerConnection();
-
-    peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
-        .then(() => navigator.mediaDevices.getUserMedia({ video: true, audio: true }))
-        .then(stream => {
-            document.getElementById("localVideo").srcObject = stream;
-            stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
-            return peerConnection.createAnswer();
-        })
-        .then(answer => peerConnection.setLocalDescription(answer))
-        .then(() => socket.send(JSON.stringify({ type: "answer", answer: peerConnection.localDescription })))
-        .catch(error => console.error("❌ handleOffer error:", error));
-}
-
 async function acceptCall() {
-    console.log("✅ Call accepted!");
+    console.log("Call accepted!");
 
-    document.getElementById("acceptCallButton").style.display = "none";
-    document.getElementById("overlay").style.display = "none";
+    document.getElementById("acceptCallButton").style.display = "none"; // Hide button
 
+    // Set up WebRTC peer connection
+    //await setupPeerConnection();
+
+    // Set remote offer received from WebSocket
     await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingOffer));
+
+    // Create an answer and send it back to the caller
     const answer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answer);
+
     socket.send(JSON.stringify({ type: "answer", answer }));
 }
 
 
-function showReceiveCallButton() {
-    let receiveCallBtn = document.getElementById("receiveCall");
 
-    if (!receiveCallBtn) {
-        receiveCallBtn = document.createElement("button");
-        receiveCallBtn.id = "receiveCall";
-        receiveCallBtn.textContent = "Receive Call";
-        receiveCallBtn.classList.add("btn", "btn-success", "mt-2", "bounce"); // Add bounce class
-        //receiveCallBtn.onclick = acceptCall;
-
-        document.getElementById("callControls").appendChild(receiveCallBtn);
-    } else {
-        receiveCallBtn.classList.add("bounce"); // Apply bounce animation
-        setTimeout(() => receiveCallBtn.classList.remove("bounce"), 500); // Remove after animation
-    }
-}
