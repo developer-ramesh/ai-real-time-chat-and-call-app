@@ -127,7 +127,7 @@ video {
 .indian-flag-text {
     font-size: 18px;
     font-weight: bold;
-    background: linear-gradient(90deg, #FF9933, #ffffff, #138808, #000080); /* Saffron, White, Green, Blue */
+    background: linear-gradient(90deg,rgb(243, 137, 32), #ffffff, #138808, #000080); /* Saffron, White, Green, Blue */
     background-size: 300% 300%;
     animation: indianFlagGradient 8s infinite linear;
 
