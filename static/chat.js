@@ -41,6 +41,8 @@ function joinRoom() {
         joinIcon.classList.remove("spinner-border", "spinner-border-sm");
         joinIcon.classList.add("bi-box-arrow-in-right");
         joinButton.textContent = "Joined!";
+
+        socket.send(JSON.stringify({ type: "join", room: roomId, username: username }));
     }
 
 
@@ -335,6 +337,3 @@ function endCall() {
 
     console.log("🔴 Call ended.");
 }
-
-
-
