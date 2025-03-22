@@ -61,6 +61,10 @@ function joinRoom() {
             showReceiveCallButton();
         }
 
+        if (data.type === "call-request") {
+            showReceiveCallButton(data.caller);
+        }
+
         if (data.type === "offer") {
             window.incomingOffer = data.offer;
             handleOffer(data.offer);
@@ -157,20 +161,33 @@ function startVideoCall() {
         alert("Please join a room first!");
         return;
     }
-    console.log("📹 Starting video call...");
+    // console.log("📹 Starting video call...");
 
-    // Request video & audio permissions
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-        .then(stream => {
-            document.getElementById("localVideo").srcObject = stream;
-            setupPeerConnection();
-            stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+    // // Request video & audio permissions
+    // navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+    //     .then(stream => {
+    //         document.getElementById("localVideo").srcObject = stream;
+    //         setupPeerConnection();
+    //         stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
 
-            peerConnection.createOffer()
-                .then(offer => peerConnection.setLocalDescription(offer))
-                .then(() => socket.send(JSON.stringify({ type: "offer", offer: peerConnection.localDescription })));
-        })
-        .catch(error => console.error("❌ Media error:", error));
+    //         peerConnection.createOffer()
+    //             .then(offer => peerConnection.setLocalDescription(offer))
+    //             .then(() => socket.send(JSON.stringify({ type: "offer", offer: peerConnection.localDescription })));
+    //     })
+    //     .catch(error => console.error("❌ Media error:", error));
+
+
+    console.log("📹 Sending call request...");
+
+    // Notify the remote user about the call
+    socket.send(JSON.stringify({ type: "call-request", caller: username }));
+}
+
+function showReceiveCallButton(caller) {
+    document.getElementById("acceptCallButton").style.display = "block";
+    document.getElementById("rejectCallButton").style.display = "block";
+    document.getElementById("overlay").style.display = "block";
+    //document.getElementById("callerName").textContent = `${caller} is calling...`;
 }
 
 /** Setting Up WebRTC Connection */
@@ -256,17 +273,34 @@ function handleOffer(offer) {
 
 /** Accepting a Call */
 async function acceptCall() {
+    // console.log("✅ Call accepted!");
+
+    // document.getElementById("acceptCallButton").style.display = "none";
+    // document.getElementById("rejectCallButton").style.display = "none";
+    // document.getElementById("overlay").style.display = "none";
+    // document.getElementById("endCallButton").style.display = "block";
+
+    // await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingOffer));
+    // const answer = await peerConnection.createAnswer();
+    // await peerConnection.setLocalDescription(answer);
+    // socket.send(JSON.stringify({ type: "answer", answer }));
+
+
     console.log("✅ Call accepted!");
-
-    document.getElementById("acceptCallButton").style.display = "none";
-    document.getElementById("rejectCallButton").style.display = "none";
     document.getElementById("overlay").style.display = "none";
-    document.getElementById("endCallButton").style.display = "block";
+    
+    // Request media permissions and proceed with the video call
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        .then(stream => {
+            document.getElementById("localVideo").srcObject = stream;
+            setupPeerConnection();
+            stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
 
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingOffer));
-    const answer = await peerConnection.createAnswer();
-    await peerConnection.setLocalDescription(answer);
-    socket.send(JSON.stringify({ type: "answer", answer }));
+            peerConnection.createOffer()
+                .then(offer => peerConnection.setLocalDescription(offer))
+                .then(() => socket.send(JSON.stringify({ type: "offer", offer: peerConnection.localDescription })));
+        })
+        .catch(error => console.error("❌ Media error:", error));
 }
 
 // Start Audio Call
@@ -337,3 +371,6 @@ function endCall() {
 
     console.log("🔴 Call ended.");
 }
+
+
+
