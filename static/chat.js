@@ -77,6 +77,12 @@ function joinRoom() {
                     .catch(error => console.error("❌ addIceCandidate error:", error));
             }
         }
+        
+        // Handle Incoming Audio Calls
+        if (data.type === "audio-offer") {
+            window.incomingOffer = data.offer;
+            handleAudioOffer(data.offer);
+        }
     };
 
     socket.onclose = () => {
@@ -168,7 +174,9 @@ function startVideoCall() {
 /** Setting Up WebRTC Connection */
 function setupPeerConnection() {
     peerConnection = new RTCPeerConnection(config);
+
     remoteStream = new MediaStream();
+
     document.getElementById("remoteVideo").srcObject = remoteStream;
     document.getElementById("remoteVideo").style.display = "block";
     
@@ -178,10 +186,50 @@ function setupPeerConnection() {
         }
     };
 
+    // peerConnection.ontrack = event => {
+    //     console.log("🎥 Received remote stream");
+    //     event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
+    // };
+
     peerConnection.ontrack = event => {
-        console.log("🎥 Received remote stream");
-        event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
+        console.log("📡 Received remote media stream");
+    
+        const stream = event.streams[0];
+    
+        // Check if the stream contains a video track
+        const hasVideo = stream.getVideoTracks().length > 0;
+        const hasAudio = stream.getAudioTracks().length > 0;
+    
+        if (hasVideo) {
+            console.log("📹 Video track detected");
+    
+            let remoteVideo = document.getElementById("remoteVideo");
+            if (!remoteVideo) {
+                remoteVideo = document.createElement("video");
+                remoteVideo.id = "remoteVideo";
+                remoteVideo.autoplay = true;
+                remoteVideo.playsInline = true;
+                document.body.appendChild(remoteVideo);
+            }
+    
+            remoteVideo.srcObject = stream;
+        }
+    
+        if (hasAudio) {
+            console.log("🎙️ Audio track detected");
+    
+            let remoteAudio = document.getElementById("remoteAudio");
+            if (!remoteAudio) {
+                remoteAudio = document.createElement("audio");
+                remoteAudio.id = "remoteAudio";
+                remoteAudio.autoplay = true;
+                document.body.appendChild(remoteAudio);
+            }
+    
+            remoteAudio.srcObject = stream;
+        }
     };
+    
 }
 
 /**  Handling Incoming Call Offers */
@@ -218,3 +266,75 @@ async function acceptCall() {
     await peerConnection.setLocalDescription(answer);
     socket.send(JSON.stringify({ type: "answer", answer }));
 }
+
+// Start Audio Call
+function startAudioCall() {
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+        alert("Please join a room first!");
+        return;
+    }
+    console.log("🎙️ Starting audio call...");
+
+    navigator.mediaDevices.getUserMedia({ audio: true }) // Audio-only
+        .then(stream => {
+            document.getElementById("startAudioCall").disabled = true;
+            document.getElementById("startVideoCall").disabled = true;
+            document.getElementById("endCallButton").style.display = "block";
+
+            setupPeerConnection(); // Setup WebRTC
+            stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+
+            peerConnection.createOffer()
+                .then(offer => peerConnection.setLocalDescription(offer))
+                .then(() => {
+                    socket.send(JSON.stringify({ type: "audio-offer", offer: peerConnection.localDescription }));
+                });
+        })
+        .catch(error => console.error("❌ Audio error:", error));
+}
+
+// Handle Incoming Audio Offer
+function handleAudioOffer(offer) {
+    document.getElementById("acceptCallButton").style.display = "block";
+    document.getElementById("rejectCallButton").style.display = "block";
+    document.getElementById("overlay").style.display = "block";
+
+    setupPeerConnection(); // Setup WebRTC connection
+
+    peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
+        .then(() => navigator.mediaDevices.getUserMedia({ audio: true })) // Audio-only
+        .then(stream => {
+            stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+            return peerConnection.createAnswer();
+        })
+        .then(answer => peerConnection.setLocalDescription(answer))
+        .then(() => {
+            socket.send(JSON.stringify({ type: "answer", answer: peerConnection.localDescription }));
+        })
+        .catch(error => console.error("❌ Error handling audio offer:", error));
+}
+
+function endCall() {
+    if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+    }
+
+    // Hide call UI buttons
+    document.getElementById("startAudioCall").disabled = false;
+    document.getElementById("startVideoCall").disabled = false;
+    document.getElementById("endCallButton").style.display = "none";
+
+    // Remove remote audio
+    const remoteAudio = document.getElementById("remoteAudio");
+    if (remoteAudio) {
+        remoteAudio.pause();
+        remoteAudio.srcObject = null;
+        remoteAudio.remove();
+    }
+
+    console.log("🔴 Call ended.");
+}
+
+
+
