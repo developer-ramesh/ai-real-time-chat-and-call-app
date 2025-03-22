@@ -161,8 +161,8 @@ function startVideoCall() {
         alert("Please join a room first!");
         return;
     }
-    // console.log("📹 Starting video call...");
 
+    // console.log("📹 Starting video call...");
     // // Request video & audio permissions
     // navigator.mediaDevices.getUserMedia({ video: true, audio: true })
     //     .then(stream => {
@@ -178,7 +178,6 @@ function startVideoCall() {
 
 
     console.log("📹 Sending call request...");
-
     // Notify the remote user about the call
     socket.send(JSON.stringify({ type: "call-request", caller: username }));
 }
@@ -274,7 +273,6 @@ function handleOffer(offer) {
 /** Accepting a Call */
 async function acceptCall() {
     // console.log("✅ Call accepted!");
-
     // document.getElementById("acceptCallButton").style.display = "none";
     // document.getElementById("rejectCallButton").style.display = "none";
     // document.getElementById("overlay").style.display = "none";
@@ -288,6 +286,7 @@ async function acceptCall() {
 
     console.log("✅ Call accepted!");
     document.getElementById("overlay").style.display = "none";
+    document.getElementById("endCallButton").style.display = "block";
     
     // Request media permissions and proceed with the video call
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
