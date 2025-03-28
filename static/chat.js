@@ -20,7 +20,7 @@ function joinRoom() {
     }
     
     socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app/ws/${roomId}`); // Production / live
-    //socket = new WebSocket(`ws://localhost:8000/ws/${roomId}`); // Local WebSocket
+    //socket = new WebSocket(`wss://192.168.31.24:8000/ws/${roomId}`); // Local WebSocket
 
     // Show loading animation
     let joinButton = document.getElementById("joinButton");
@@ -86,6 +86,7 @@ function joinRoom() {
         
         // Handle Incoming Audio Calls
         if (data.type === "audio-offer") {
+            showReceiveCallButton(data.caller);
             window.incomingOffer = data.offer;
             handleAudioOffer(data.offer);
         }
@@ -178,6 +179,8 @@ function startVideoCall() {
 
 
     console.log("📹 Sending call request...");
+    // Show ringing UI
+    
     // Notify the remote user about the call
     socket.send(JSON.stringify({ type: "call-request", caller: username }));
 }
@@ -186,7 +189,10 @@ function showReceiveCallButton(caller) {
     document.getElementById("acceptCallButton").style.display = "block";
     document.getElementById("rejectCallButton").style.display = "block";
     document.getElementById("overlay").style.display = "block";
-    //document.getElementById("callerName").textContent = `${caller} is calling...`;
+    document.getElementById("callingButton").style.display = "block";
+    //document.getElementById("callingButton").textContent = `${caller} is calling...`;
+    document.getElementById("callingButton").innerHTML = `${caller} is calling... <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>`;
+
 }
 
 /** Setting Up WebRTC Connection */
@@ -252,10 +258,6 @@ function setupPeerConnection() {
 
 /**  Handling Incoming Call Offers */
 function handleOffer(offer) {
-    document.getElementById("acceptCallButton").style.display = "block";
-    document.getElementById("rejectCallButton").style.display = "block";
-    document.getElementById("overlay").style.display = "block";
-
     setupPeerConnection();
 
     peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
@@ -272,21 +274,12 @@ function handleOffer(offer) {
 
 /** Accepting a Call */
 async function acceptCall() {
-    // console.log("✅ Call accepted!");
-    // document.getElementById("acceptCallButton").style.display = "none";
-    // document.getElementById("rejectCallButton").style.display = "none";
-    // document.getElementById("overlay").style.display = "none";
-    // document.getElementById("endCallButton").style.display = "block";
-
-    // await peerConnection.setRemoteDescription(new RTCSessionDescription(window.incomingOffer));
-    // const answer = await peerConnection.createAnswer();
-    // await peerConnection.setLocalDescription(answer);
-    // socket.send(JSON.stringify({ type: "answer", answer }));
-
-
     console.log("✅ Call accepted!");
     document.getElementById("overlay").style.display = "none";
     document.getElementById("endCallButton").style.display = "block";
+    document.getElementById("acceptCallButton").style.display = "none";
+    document.getElementById("rejectCallButton").style.display = "none";
+    document.getElementById("callingButton").style.display = "none";
     
     // Request media permissions and proceed with the video call
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
@@ -330,10 +323,6 @@ function startAudioCall() {
 
 // Handle Incoming Audio Offer
 function handleAudioOffer(offer) {
-    document.getElementById("acceptCallButton").style.display = "block";
-    document.getElementById("rejectCallButton").style.display = "block";
-    document.getElementById("overlay").style.display = "block";
-
     setupPeerConnection(); // Setup WebRTC connection
 
     peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
@@ -370,6 +359,26 @@ function endCall() {
 
     console.log("🔴 Call ended.");
 }
+
+function rejectCall() {
+    console.log("❌ Call rejected!");
+    
+    // Hide call UI buttons
+    document.getElementById("overlay").style.display = "none";
+    document.getElementById("acceptCallButton").style.display = "none";
+    document.getElementById("rejectCallButton").style.display = "none";
+    document.getElementById("callingButton").style.display = "none";
+    
+    // Notify the other peer
+    socket.send(JSON.stringify({ type: "reject" }));
+
+    // Clean up WebRTC connection
+    if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+    }
+}
+
 
 
 
