@@ -12,7 +12,7 @@ body {
 }
 
 .chat-box {
-    height: 350px;
+    height: 300px;
     overflow-y: auto;
     border-radius: 10px;
     padding: 10px;
@@ -136,7 +136,7 @@ video {
     font-weight: bold;
     background: linear-gradient(90deg,rgb(243, 137, 32), #ffffff, #138808, #000080); /* Saffron, White, Green, Blue */
     background-size: 300% 300%;
-    animation: indianFlagGradient 8s infinite linear;
+    /* animation: indianFlagGradient 8s infinite linear; */
 
     /* Ensure text gradient effect works */
     -webkit-background-clip: text;
@@ -155,7 +155,7 @@ video {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color:#efefef;;
+    background-color:#0d0d0e;
     z-index: -1;
     border-radius: 5px;
 }
@@ -172,7 +172,35 @@ video {
 }
 
 @media (max-width: 576px) {
-  #rejectCallButton {
-    left: 70%;
+  #acceptCallButton {
+    left: 18%;
   }
+  #rejectCallButton {
+    left: 45%;
+  }
+  #callingButton {
+    left: 16%;
+  }
+}
+
+.draggable-video {
+    position: absolute;
+    cursor: grab;
+}
+
+#localVideo {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    width: 200px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+#remoteVideo {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 200px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
