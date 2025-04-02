@@ -19,8 +19,8 @@ function joinRoom() {
         return;
     }
     
-    //socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app/ws/${roomId}`); // Production / live
-    socket = new WebSocket(`wss://192.168.31.24:8000/ws/${roomId}`); // Local WebSocket
+    socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app/ws/${roomId}`); // Production / live
+    //socket = new WebSocket(`wss://192.168.31.24:8000/ws/${roomId}`); // Local WebSocket
 
     // Show loading animation
     let joinButton = document.getElementById("joinButton");
@@ -58,16 +58,16 @@ function joinRoom() {
         }
 
         if (data.type === "call") {
-            showReceiveCallButton();
+            //showReceiveCallButton();
         }
 
         if (data.type === "call-request") {
-            showReceiveCallButton(data.caller);
+            showReceiveCallButton(data.caller, 'video');
         }
 
         if (data.type === "offer") {
             window.incomingOffer = data.offer;
-            handleOffer(data.offer);
+            handleOffer(data.offer, data.call_type);
         }
 
         if (data.type === "answer") {
@@ -86,7 +86,7 @@ function joinRoom() {
         
         // Handle Incoming Audio Calls
         if (data.type === "audio-offer") {
-            showReceiveCallButton(data.caller);
+            showReceiveCallButton(data.caller, "audio");
             window.incomingOffer = data.offer;
             handleAudioOffer(data.offer);
         }
@@ -155,43 +155,27 @@ function toggleSendButton() {
     }
 }
 
-/** Video Call Functionality */
-// Starting a Video Call
+/** Video Call Functionality **** Starting a Video Call */
 function startVideoCall() {
     if (!socket || socket.readyState !== WebSocket.OPEN) {
         alert("Please join a room first!");
         return;
     }
 
-    // console.log("📹 Starting video call...");
-    // // Request video & audio permissions
-    // navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-    //     .then(stream => {
-    //         document.getElementById("localVideo").srcObject = stream;
-    //         setupPeerConnection();
-    //         stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
-
-    //         peerConnection.createOffer()
-    //             .then(offer => peerConnection.setLocalDescription(offer))
-    //             .then(() => socket.send(JSON.stringify({ type: "offer", offer: peerConnection.localDescription })));
-    //     })
-    //     .catch(error => console.error("❌ Media error:", error));
-
-
-    console.log("📹 Sending call request...");
+    console.log("📹 Sending Video call request...");
     // Show ringing UI
-    
     // Notify the remote user about the call
-    socket.send(JSON.stringify({ type: "call-request", caller: username }));
+    socket.send(JSON.stringify({ type: "call-request", caller: username, call_type: "video" }));
 }
 
-function showReceiveCallButton(caller) {
+function showReceiveCallButton(caller, callType) {
     document.getElementById("acceptCallButton").style.display = "block";
     document.getElementById("rejectCallButton").style.display = "block";
     document.getElementById("overlay").style.display = "block";
     document.getElementById("callingButton").style.display = "block";
-    //document.getElementById("callingButton").textContent = `${caller} is calling...`;
-    document.getElementById("callingButton").innerHTML = `${caller} is calling... <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>`;
+    document.getElementById("callingButton").setAttribute("data-type", callType);
+    document.getElementById("callingButton").innerHTML = `${caller} is calling ${callType}... <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>`;
+    document.getElementById("acceptCallButton").innerHTML = `Accept ${callType} call`;
 
 }
 
@@ -210,16 +194,10 @@ function setupPeerConnection() {
         }
     };
 
-    // peerConnection.ontrack = event => {
-    //     console.log("🎥 Received remote stream");
-    //     event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
-    // };
-
     peerConnection.ontrack = event => {
         console.log("📡 Received remote media stream");
     
         const stream = event.streams[0];
-    
         // Check if the stream contains a video track
         const hasVideo = stream.getVideoTracks().length > 0;
         const hasAudio = stream.getAudioTracks().length > 0;
@@ -257,19 +235,38 @@ function setupPeerConnection() {
 }
 
 /**  Handling Incoming Call Offers */
-function handleOffer(offer) {
+function handleOffer(offer, callType) {
     setupPeerConnection();
 
     peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
         .then(() => navigator.mediaDevices.getUserMedia({ video: true, audio: true }))
         .then(stream => {
-            document.getElementById("localVideo").srcObject = stream;
+            if (callType === "video") {
+                document.getElementById("localVideo").srcObject = stream;
+            }
             stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
             return peerConnection.createAnswer();
         })
         .then(answer => peerConnection.setLocalDescription(answer))
         .then(() => socket.send(JSON.stringify({ type: "answer", answer: peerConnection.localDescription })))
         .catch(error => console.error("❌ handleOffer error:", error));
+}
+
+// Handle Incoming Audio Offer
+function handleAudioOffer(offer) {
+    setupPeerConnection(); // Setup WebRTC connection
+
+    peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
+        .then(() => navigator.mediaDevices.getUserMedia({ audio: true })) // Audio-only
+        .then(stream => {
+            stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+            return peerConnection.createAnswer();
+        })
+        .then(answer => peerConnection.setLocalDescription(answer))
+        .then(() => {
+            socket.send(JSON.stringify({ type: "answer", answer: peerConnection.localDescription }));
+        })
+        .catch(error => console.error("❌ Error handling audio offer:", error));
 }
 
 /** Accepting a Call */
@@ -280,17 +277,25 @@ async function acceptCall() {
     document.getElementById("acceptCallButton").style.display = "none";
     document.getElementById("rejectCallButton").style.display = "none";
     document.getElementById("callingButton").style.display = "none";
+
+    const callType = document.getElementById("callingButton").getAttribute("data-type");
+    let $boolean = false;
+    if (callType === "video") {
+        $boolean = true
+    }
     
     // Request media permissions and proceed with the video call
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+    navigator.mediaDevices.getUserMedia({ video: $boolean, audio: true })
         .then(stream => {
-            document.getElementById("localVideo").srcObject = stream;
+            if ($boolean) { // for video call
+                document.getElementById("localVideo").srcObject = stream;
+            }
             setupPeerConnection();
             stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
 
             peerConnection.createOffer()
                 .then(offer => peerConnection.setLocalDescription(offer))
-                .then(() => socket.send(JSON.stringify({ type: "offer", offer: peerConnection.localDescription })));
+                .then(() => socket.send(JSON.stringify({ type: "offer", offer: peerConnection.localDescription, call_type: callType })));
         })
         .catch(error => console.error("❌ Media error:", error));
 }
@@ -319,23 +324,6 @@ function startAudioCall() {
                 });
         })
         .catch(error => console.error("❌ Audio error:", error));
-}
-
-// Handle Incoming Audio Offer
-function handleAudioOffer(offer) {
-    setupPeerConnection(); // Setup WebRTC connection
-
-    peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
-        .then(() => navigator.mediaDevices.getUserMedia({ audio: true })) // Audio-only
-        .then(stream => {
-            stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
-            return peerConnection.createAnswer();
-        })
-        .then(answer => peerConnection.setLocalDescription(answer))
-        .then(() => {
-            socket.send(JSON.stringify({ type: "answer", answer: peerConnection.localDescription }));
-        })
-        .catch(error => console.error("❌ Error handling audio offer:", error));
 }
 
 function endCall() {
@@ -378,3 +366,39 @@ function rejectCall() {
         peerConnection = null;
     }
 }
+
+// Video Dragging Functionality
+document.addEventListener("DOMContentLoaded", function () {
+    const videos = document.querySelectorAll(".draggable-video");
+
+    videos.forEach(video => {
+        video.addEventListener("mousedown", function (event) {
+            let shiftX = event.clientX - video.getBoundingClientRect().left;
+            let shiftY = event.clientY - video.getBoundingClientRect().top;
+
+            function moveAt(pageX, pageY) {
+                video.style.left = pageX - shiftX + "px";
+                video.style.top = pageY - shiftY + "px";
+            }
+
+            function onMouseMove(event) {
+                moveAt(event.pageX, event.pageY);
+            }
+
+            document.addEventListener("mousemove", onMouseMove);
+
+            video.addEventListener("mouseup", function () {
+                document.removeEventListener("mousemove", onMouseMove);
+            });
+
+            video.ondragstart = function () {
+                return false;
+            };
+        });
+    });
+});
+
+
+
+
+
