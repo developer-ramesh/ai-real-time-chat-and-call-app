@@ -68,7 +68,7 @@ video {
     display: none;
     position: fixed;
     top: 50%;
-    left: 50%;
+    left: 52%;
     transform: translate(-50%, -50%) scale(0.8);
     background-color: #b41e4b;
     color: white;
@@ -176,7 +176,7 @@ video {
     left: 18%;
   }
   #rejectCallButton {
-    left: 45%;
+    left: 47%;
   }
   #callingButton {
     left: 16%;
