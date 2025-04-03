@@ -19,8 +19,8 @@ function joinRoom() {
         return;
     }
     
-    //socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app/ws/${roomId}`); // Production / live
-    socket = new WebSocket(`wss://192.168.31.24:8000/ws/${roomId}`); // Local WebSocket
+    socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app/ws/${roomId}`); // Production / live
+    //socket = new WebSocket(`wss://192.168.31.24:8000/ws/${roomId}`); // Local WebSocket
 
     // Show loading animation
     let joinButton = document.getElementById("joinButton");
