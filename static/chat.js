@@ -19,8 +19,8 @@ function joinRoom() {
         return;
     }
     
-    socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app/ws/${roomId}`); // Production / live
-    //socket = new WebSocket(`wss://192.168.31.24:8000/ws/${roomId}`); // Local WebSocket
+    //socket = new WebSocket(`wss://ramesh-cq-chat.koyeb.app/ws/${roomId}`); // Production / live
+    socket = new WebSocket(`wss://192.168.31.24:8000/ws/${roomId}`); // Local WebSocket
 
     // Show loading animation
     let joinButton = document.getElementById("joinButton");
@@ -89,6 +89,10 @@ function joinRoom() {
             showReceiveCallButton(data.caller, "audio");
             window.incomingOffer = data.offer;
             handleAudioOffer(data.offer);
+        }
+
+        if (data.type === "call-end") {
+            handleRemoteEndCall();
         }
     };
 
@@ -163,6 +167,9 @@ function startVideoCall() {
     }
 
     console.log("📹 Sending Video call request...");
+    document.getElementById("startAudioCall").disabled = true;
+    document.getElementById("startVideoCall").disabled = true;
+    document.getElementById("endCallButton").style.display = "block";
     // Show ringing UI
     // Notify the remote user about the call
     socket.send(JSON.stringify({ type: "call-request", caller: username, call_type: "video" }));
@@ -326,10 +333,43 @@ function startAudioCall() {
         .catch(error => console.error("❌ Audio error:", error));
 }
 
+// Function to handle call termination on remote side
+function handleRemoteEndCall() {
+    if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+    }
+
+    // Stop and remove local video
+    const localVideo = document.getElementById("localVideo");
+    if (localVideo && localVideo.srcObject) {
+        localVideo.srcObject.getTracks().forEach(track => track.stop());
+        localVideo.srcObject = null;
+    }
+
+    // Stop and remove remote video
+    const remoteVideo = document.getElementById("remoteVideo");
+    if (remoteVideo && remoteVideo.srcObject) {
+        remoteVideo.srcObject.getTracks().forEach(track => track.stop());
+        remoteVideo.srcObject = null;
+    }
+
+    document.getElementById("startAudioCall").disabled = false;
+    document.getElementById("startVideoCall").disabled = false;
+    document.getElementById("endCallButton").style.display = "none";
+
+    console.log("🚫 Call ended by remote user.");
+}
+
 function endCall() {
     if (peerConnection) {
         peerConnection.close();
         peerConnection = null;
+    }
+
+    // Notify remote peer that call is ending
+    if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: "call-end" }));
     }
 
     // Hide call UI buttons
@@ -337,16 +377,24 @@ function endCall() {
     document.getElementById("startVideoCall").disabled = false;
     document.getElementById("endCallButton").style.display = "none";
 
-    // Remove remote audio
-    const remoteAudio = document.getElementById("remoteAudio");
-    if (remoteAudio) {
-        remoteAudio.pause();
-        remoteAudio.srcObject = null;
-        remoteAudio.remove();
+    // Stop and remove local video
+    const localVideo = document.getElementById("localVideo");
+    if (localVideo && localVideo.srcObject) {
+        localVideo.srcObject.getTracks().forEach(track => track.stop());
+        localVideo.srcObject = null;
+    }
+
+    // Stop and remove remote video
+    const remoteVideo = document.getElementById("remoteVideo");
+    if (remoteVideo && remoteVideo.srcObject) {
+        remoteVideo.srcObject.getTracks().forEach(track => track.stop());
+        remoteVideo.srcObject = null;
     }
 
     console.log("🔴 Call ended.");
 }
+
+
 
 function rejectCall() {
     console.log("❌ Call rejected!");
